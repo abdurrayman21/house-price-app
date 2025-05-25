@@ -7,43 +7,87 @@ Original file is located at
     https://colab.research.google.com/drive/1Mhw2vqABc-F7wsG1Bd0HOOUioj3iJRip
 """
 
-# app.py
-
 import streamlit as st
 import pandas as pd
 import joblib
-import plotly.express as px
 
-# --- Load the model and preprocessor from the tuple ---
-model_tuple = joblib.load("house_price_model.pkl")
+# Load model and preprocessor
+model, preprocessor = joblib.load("house_price_model.pkl")
 
-# Unpack the model and preprocessor
-model, preprocessor = model_tuple
+st.set_page_config(page_title="Full House Price Estimator", layout="wide")
+st.title("🏠 Full Feature House Price Estimator")
 
-# --- Streamlit Page Setup ---
-st.set_page_config(page_title="House Price Estimator", layout="wide")
-st.title("🏠 House Price Prediction App")
-st.markdown("This app predicts **house sale prices** using a trained machine learning model and Streamlit UI.")
+# Sidebar form to collect all 70+ features
+with st.form("house_form"):
+    st.subheader("Basic Info")
+    MSSubClass = st.selectbox("MSSubClass", [20, 30, 40, 50, 60, 70, 80, 90, 120, 160, 180, 190])
+    MSZoning = st.selectbox("MSZoning", ['RL', 'RM', 'C (all)', 'FV', 'RH'])
+    LotFrontage = st.number_input("LotFrontage", 0, 200, 60)
+    LotArea = st.number_input("LotArea", 1000, 100000, 7500)
+    Street = st.selectbox("Street", ['Pave', 'Grvl'])
+    Alley = st.selectbox("Alley", ['Grvl', 'Pave', 'NA'])
+    LotShape = st.selectbox("LotShape", ['Reg', 'IR1', 'IR2', 'IR3'])
 
-# --- Sidebar Inputs ---
-st.sidebar.header("Enter House Features")
+    st.subheader("Condition and Structure")
+    OverallQual = st.slider("Overall Quality", 1, 10, 5)
+    OverallCond = st.slider("Overall Condition", 1, 10, 5)
+    YearBuilt = st.slider("Year Built", 1870, 2023, 2000)
+    YearRemodAdd = st.slider("Remodel Year", 1950, 2023, 2000)
+    RoofStyle = st.selectbox("RoofStyle", ['Gable', 'Hip', 'Flat', 'Gambrel', 'Mansard', 'Shed'])
+    RoofMatl = st.selectbox("Roof Material", ['CompShg', 'Metal', 'Tar&Grv', 'WdShake', 'WdShngl'])
 
-OverallQual = st.sidebar.slider("Overall Quality (1-10)", 1, 10, 5)
-GrLivArea = st.sidebar.number_input("Above Grade Living Area (Sq Ft)", min_value=300, max_value=10000, value=1500)
-GarageCars = st.sidebar.slider("Garage Capacity (Cars)", 0, 4, 2)
-TotalBsmtSF = st.sidebar.number_input("Total Basement SF", min_value=0, max_value=3000, value=800)
-FullBath = st.sidebar.slider("Number of Full Bathrooms", 0, 4, 2)
-YearBuilt = st.sidebar.slider("Year Built", 1870, 2023, 2000)
+    st.subheader("Basement")
+    BsmtQual = st.selectbox("Bsmt Quality", ['Ex', 'Gd', 'TA', 'Fa', 'Po', 'NA'])
+    BsmtCond = st.selectbox("Bsmt Condition", ['Ex', 'Gd', 'TA', 'Fa', 'Po', 'NA'])
+    BsmtExposure = st.selectbox("Bsmt Exposure", ['Gd', 'Av', 'Mn', 'No', 'NA'])
+    BsmtFinType1 = st.selectbox("BsmtFinType1", ['GLQ', 'ALQ', 'BLQ', 'Rec', 'LwQ', 'Unf', 'NA'])
+    BsmtFinSF1 = st.number_input("BsmtFinSF1", 0, 5000, 500)
+    BsmtUnfSF = st.number_input("BsmtUnfSF", 0, 5000, 300)
+    TotalBsmtSF = st.number_input("TotalBsmtSF", 0, 5000, 1000)
 
-# --- Predict Price ---
-if st.sidebar.button("Estimate Price"):
-    input_df = pd.DataFrame([[OverallQual, GrLivArea, GarageCars, TotalBsmtSF, FullBath, YearBuilt]],
-                             columns=['OverallQual', 'GrLivArea', 'GarageCars', 'TotalBsmtSF', 'FullBath', 'YearBuilt'])
+    st.subheader("Bathrooms and Rooms")
+    FullBath = st.slider("Full Bathrooms", 0, 5, 2)
+    HalfBath = st.slider("Half Bathrooms", 0, 3, 1)
+    BedroomAbvGr = st.slider("Bedrooms", 0, 10, 3)
+    KitchenAbvGr = st.slider("Kitchens", 0, 5, 1)
+    KitchenQual = st.selectbox("Kitchen Quality", ['Ex', 'Gd', 'TA', 'Fa', 'Po'])
+
+    st.subheader("Living Area")
+    GrLivArea = st.number_input("Above Grade Living Area", 500, 10000, 1500)
+    TotRmsAbvGrd = st.slider("Total Rooms Above Grade", 1, 15, 6)
+    Fireplaces = st.slider("Number of Fireplaces", 0, 4, 1)
+
+    st.subheader("Garage")
+    GarageCars = st.slider("Garage Cars", 0, 4, 2)
+    GarageArea = st.number_input("Garage Area (Sq Ft)", 0, 2000, 400)
+    GarageType = st.selectbox("Garage Type", ['Attchd', 'Detchd', 'BuiltIn', 'Basment', 'CarPort', 'NA'])
+    GarageFinish = st.selectbox("Garage Finish", ['Fin', 'RFn', 'Unf', 'NA'])
+
+    st.subheader("Porches and Misc")
+    OpenPorchSF = st.number_input("Open Porch SF", 0, 500, 50)
+    EnclosedPorch = st.number_input("Enclosed Porch SF", 0, 500, 0)
+    ScreenPorch = st.number_input("Screen Porch SF", 0, 500, 0)
+    PoolArea = st.number_input("Pool Area", 0, 800, 0)
+    MiscVal = st.number_input("Misc Val", 0, 20000, 0)
+
+    st.subheader("Sale")
+    MoSold = st.slider("Month Sold", 1, 12, 6)
+    YrSold = st.slider("Year Sold", 2006, 2010, 2008)
+    SaleType = st.selectbox("SaleType", ['WD', 'New', 'COD', 'ConLD', 'ConLw', 'ConLI'])
+    SaleCondition = st.selectbox("SaleCondition", ['Normal', 'Abnorml', 'Partial', 'AdjLand', 'Alloca', 'Family'])
+
+    submit = st.form_submit_button("Predict Sale Price")
+
+# On form submit
+if submit:
+    # Create a single-row DataFrame with the inputs
+    input_data = pd.DataFrame([locals()], columns=preprocessor.feature_names_in_)
 
     try:
-        processed_input = preprocessor.transform(input_df)
-        prediction = model.predict(processed_input)[0]
-        st.success(f"🏡 Estimated Sale Price: **${prediction:,.2f}**")
+        X = preprocessor.transform(input_data)
+        prediction = model.predict(X)[0]
+        st.success(f"🏡 Predicted Sale Price: ${prediction:,.2f}")
     except Exception as e:
         st.error(f"Prediction failed: {e}")
+
 
